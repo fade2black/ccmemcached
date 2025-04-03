@@ -1,4 +1,4 @@
-use clap::{value_parser, Arg, Command};
+use clap::{Arg, Command, value_parser};
 
 pub fn get_port() -> Option<usize> {
     let matches = build_command().get_matches();
@@ -6,10 +6,9 @@ pub fn get_port() -> Option<usize> {
     if let Some(val) = matches.get_one("port") {
         Some(*val)
     } else {
-       None
+        None
     }
 }
-
 
 fn build_command() -> Command {
     Command::new("ccmemcached")
