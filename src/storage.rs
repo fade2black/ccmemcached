@@ -5,7 +5,7 @@ use crate::command::SetCommand;
 pub struct Record {
     key: String,
     flags: u32,
-    expire_time: u32,
+    expire_time: i32,
     byte_count: usize,
     noreply: bool,
     pub data: Vec<u8>,
