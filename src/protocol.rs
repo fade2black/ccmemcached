@@ -54,7 +54,7 @@ fn parse_set_cmd(parts: Vec<&str>) -> Result<Command> {
 
     command.key = parts[1].to_string();
     command.flags = parts[2].parse::<u32>()?;
-    command.expire_time = parts[3].parse::<i32>()?;
+    command.expire_time = parts[3].parse::<i64>()?;
     command.byte_count = parts[4].parse::<usize>()?;
     command.noreply = parts.len() > 5 && parts[5] == "noreply";
 
@@ -88,7 +88,7 @@ where
 {
     debug!("Executing: GET {}", command.key);
 
-    let ptr = storage.read().map_err(|_| AppError::StateAccessError)?;
+    let mut ptr = storage.write().map_err(|_| AppError::StateAccessError)?;
 
     let resp = match ptr.find(&command.key) {
         Some(record) => record.to_string().map_err(|_| AppError::StateAccessError)?,
