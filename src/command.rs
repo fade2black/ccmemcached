@@ -1,7 +1,9 @@
 #[derive(Debug)]
 pub enum Command {
     Set(SetCommand),
+    Add(SetCommand),
     Get(GetCommand),
+    Replace(SetCommand),
 }
 
 #[derive(Debug, Default)]

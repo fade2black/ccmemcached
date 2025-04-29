@@ -70,4 +70,6 @@ pub trait Storage {
     fn store(&mut self, key: String, record: Record);
     fn remove(&mut self, key: &str) -> Option<Record>;
     fn find(&mut self, key: &str) -> Option<&Record>;
+    fn get(&self, key: &str) -> Option<&Record>;
+    fn exists(&self, key: &str) -> bool;
 }

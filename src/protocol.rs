@@ -6,7 +6,7 @@ use crate::{
 use std::str;
 use std::sync::RwLock;
 use std::{collections::HashMap, sync::Arc};
-use tracing::{debug, error};
+use tracing::{debug, error, info};
 
 type ParserFn = fn(Vec<&str>) -> Result<Command>;
 
@@ -23,6 +23,8 @@ pub fn parse_command(line: &str) -> Result<Command> {
     let mut parsers: HashMap<&str, ParserFn> = HashMap::new();
     parsers.insert("set", parse_set_cmd);
     parsers.insert("get", parse_get_cmd);
+    parsers.insert("add", parse_add_cmd);
+    parsers.insert("replace", parse_replace_cmd);
 
     if let Some(func) = parsers.get(cmd_name) {
         func(parts)
@@ -39,6 +41,8 @@ where
     match command {
         Command::Get(command) => exec_get_cmd(command, storage),
         Command::Set(command) => exec_set_cmd(command, storage),
+        Command::Add(command) => exec_add_cmd(command, storage),
+        Command::Replace(command) => exec_replace_cmd(command, storage),
     }
 }
 
@@ -59,6 +63,30 @@ fn parse_set_cmd(parts: Vec<&str>) -> Result<Command> {
     command.noreply = parts.len() > 5 && parts[5] == "noreply";
 
     Ok(Command::Set(command))
+}
+
+fn parse_add_cmd(parts: Vec<&str>) -> Result<Command> {
+    let mut command = SetCommand::default();
+
+    command.key = parts[1].to_string();
+    command.flags = parts[2].parse::<u32>()?;
+    command.expire_time = parts[3].parse::<i64>()?;
+    command.byte_count = parts[4].parse::<usize>()?;
+    command.noreply = parts.len() > 5 && parts[5] == "noreply";
+
+    Ok(Command::Add(command))
+}
+
+fn parse_replace_cmd(parts: Vec<&str>) -> Result<Command> {
+    let mut command = SetCommand::default();
+
+    command.key = parts[1].to_string();
+    command.flags = parts[2].parse::<u32>()?;
+    command.expire_time = parts[3].parse::<i64>()?;
+    command.byte_count = parts[4].parse::<usize>()?;
+    command.noreply = parts.len() > 5 && parts[5] == "noreply";
+
+    Ok(Command::Replace(command))
 }
 
 fn exec_set_cmd<T>(command: SetCommand, storage: Arc<RwLock<T>>) -> Result<String>
@@ -96,6 +124,60 @@ where
     };
 
     Ok(resp + "END\r\n")
+}
+
+fn exec_add_cmd<T>(command: SetCommand, storage: Arc<RwLock<T>>) -> Result<String>
+where
+    T: Storage,
+{
+    debug!(
+        "Executing: ADD {}, {:?}",
+        command.key,
+        std::str::from_utf8(&command.data)
+    );
+
+    let noreply = command.noreply;
+    let mut resp = "NOT_STORED\r\n".to_string();
+    let mut ptr = storage.write().map_err(|_| AppError::StateAccessError)?;
+
+    if !ptr.exists(&command.key) {
+        info!("storing {0}", command.key);
+        ptr.store(command.key.clone(), Record::from(command));
+        resp = "STORED\r\n".to_string();
+    }
+
+    if noreply {
+        Ok("".to_string())
+    } else {
+        Ok(resp)
+    }
+}
+
+fn exec_replace_cmd<T>(command: SetCommand, storage: Arc<RwLock<T>>) -> Result<String>
+where
+    T: Storage,
+{
+    debug!(
+        "Executing: REPLACE {}, {:?}",
+        command.key,
+        std::str::from_utf8(&command.data)
+    );
+
+    let noreply = command.noreply;
+    let mut resp = "NOT_STORED\r\n".to_string();
+    let mut ptr = storage.write().map_err(|_| AppError::StateAccessError)?;
+
+    if ptr.exists(&command.key) {
+        info!("storing {0}", command.key);
+        ptr.store(command.key.clone(), Record::from(command));
+        resp = "STORED\r\n".to_string();
+    }
+
+    if noreply {
+        Ok("".to_string())
+    } else {
+        Ok(resp)
+    }
 }
 
 #[cfg(test)]

@@ -33,6 +33,14 @@ impl Storage for HashMapStorage {
             self.0.get(key)
         }
     }
+
+    fn get(&self, key: &str) -> Option<&Record> {
+        self.0.get(key)
+    }
+
+    fn exists(&self, key: &str) -> bool {
+        self.0.get(key).is_some()
+    }
 }
 
 #[cfg(test)]
@@ -95,5 +103,17 @@ mod tests {
         record.data = value.clone();
         storage.store(key.to_owned(), record.clone());
         assert_eq!(None, storage.find(&key));
+    }
+
+    #[test]
+    fn test_exists() {
+        let mut storage = HashMapStorage::new();
+        let record = Record::default();
+        let key = "test";
+
+        storage.store(key.to_string(), record);
+
+        assert!(storage.exists(key));
+        assert!(!storage.exists("none"));
     }
 }

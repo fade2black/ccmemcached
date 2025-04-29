@@ -64,12 +64,15 @@ where
             let mut command = protocol::parse_command(command_line)?;
 
             // Read the data block if exists
-            if let Command::Set(cmd) = &mut command {
-                let mut data = vec![0u8; cmd.byte_count + 2]; // 2 bytes for "/r/n"
-                info!("Waiting for data block");
-                socket.read_exact(&mut data).await?;
-                data.truncate(data.len() - 2);
-                cmd.data = data;
+            match &mut command {
+                Command::Set(cmd) | Command::Add(cmd) | Command::Replace(cmd) => {
+                    let mut data = vec![0u8; cmd.byte_count + 2]; // 2 bytes for "/r/n"
+                    info!("Waiting for data block");
+                    socket.read_exact(&mut data).await?;
+                    data.truncate(data.len() - 2);
+                    cmd.data = data;
+                }
+                _ => {}
             }
 
             let s = Arc::clone(&storage);
