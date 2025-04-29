@@ -6,7 +6,7 @@ use crate::{
 use std::str;
 use std::sync::RwLock;
 use std::{collections::HashMap, sync::Arc};
-use tracing::{debug, error, info};
+use tracing::{debug, error};
 
 type ParserFn = fn(Vec<&str>) -> Result<Command>;
 
@@ -141,7 +141,6 @@ where
     let mut ptr = storage.write().map_err(|_| AppError::StateAccessError)?;
 
     if !ptr.exists(&command.key) {
-        info!("storing {0}", command.key);
         ptr.store(command.key.clone(), Record::from(command));
         resp = "STORED\r\n".to_string();
     }
@@ -168,7 +167,6 @@ where
     let mut ptr = storage.write().map_err(|_| AppError::StateAccessError)?;
 
     if ptr.exists(&command.key) {
-        info!("storing {0}", command.key);
         ptr.store(command.key.clone(), Record::from(command));
         resp = "STORED\r\n".to_string();
     }
